@@ -1,5 +1,6 @@
 package com.helpdesk.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.helpdesk.enums.CommentType;
 import jakarta.persistence.*;
@@ -13,7 +14,7 @@ public class TicketComment {
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_id", nullable = false)
-    @JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
+    @JsonIgnore
     private Ticket ticket;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author_id", nullable = false)
