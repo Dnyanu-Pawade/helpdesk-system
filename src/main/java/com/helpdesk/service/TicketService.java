@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.*;
@@ -146,9 +147,9 @@ public class TicketService {
     public List<Ticket> getMyTickets(User user) { return ticketRepo.findByCreatedByOrderByCreatedAtDesc(user); }
     public List<Ticket> getAssignedTickets(User engineer) { return ticketRepo.findByAssignedToOrderByCreatedAtDesc(engineer); }
     public List<Ticket> getOpenTickets() { return ticketRepo.findByStatusOrderByCreatedAtDesc(TicketStatus.OPEN); }
-    public List<TicketComment> getComments(Long ticketId) { return commentRepo.findByTicketIdOrderByCreatedAtAsc(ticketId); }
-    public List<Attachment> getAttachments(Long ticketId) { return attachmentRepo.findByTicketId(ticketId); }
-    public List<TicketHistory> getHistory(Long ticketId) { return historyRepo.findByTicketIdOrderByCreatedAtDesc(ticketId); }
+    @Transactional public List<TicketComment> getComments(Long ticketId) { return commentRepo.findByTicketIdOrderByCreatedAtAsc(ticketId); }
+    @Transactional public List<Attachment> getAttachments(Long ticketId) { return attachmentRepo.findByTicketId(ticketId); }
+    @Transactional public List<TicketHistory> getHistory(Long ticketId) { return historyRepo.findByTicketIdOrderByCreatedAtDesc(ticketId); }
     public Page<com.helpdesk.dto.TicketSummaryDTO> searchAll(String status, String priority, String category, String keyword, int page, int size) {
         TicketStatus ts = (status != null && !status.isEmpty()) ? TicketStatus.valueOf(status) : null;
         Priority pr = (priority != null && !priority.isEmpty()) ? Priority.valueOf(priority) : null;
