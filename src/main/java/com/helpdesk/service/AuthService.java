@@ -23,6 +23,7 @@ public class AuthService {
     private final EmailService emailService;
     private final AuditLogService auditLogService;
 
+    @Transactional
     public JwtResponse login(LoginRequest req) {
         Authentication auth = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(req.getUsername(), req.getPassword()));
         UserDetailsImpl user = (UserDetailsImpl) auth.getPrincipal();
