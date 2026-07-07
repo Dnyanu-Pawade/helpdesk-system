@@ -1,0 +1,5 @@
+package com.helpdesk.enums;
+public enum TicketCategory {
+    HARDWARE, SOFTWARE, NETWORK, EMAIL, VPN, PRINTER,
+    LAPTOP_DESKTOP, PASSWORD_RESET, APPLICATION_ISSUE, SERVER_ISSUE, OTHER
+}

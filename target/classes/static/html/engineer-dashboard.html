@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Engineer Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="../css/style.css" rel="stylesheet"/></head>
+<body><div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-header"><span class="brand"><i class="fas fa-headset me-2"></i>Help Desk</span><span class="brand-sub">Engineer Portal</span></div>
+  <nav class="sidebar-nav">
+    <a href="engineer-dashboard.html" class="nav-item active"><i class="fas fa-home"></i> Dashboard</a>
+    <a href="notifications.html" class="nav-item"><i class="fas fa-bell"></i> Notifications <span id="notif-badge" class="badge bg-danger ms-auto d-none">0</span></a>
+    <a href="profile.html" class="nav-item"><i class="fas fa-user"></i> Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info"><div class="user-avatar"><i class="fas fa-user-cog"></i></div><div><div class="user-name" id="sidebar-username">-</div><div class="user-role" id="sidebar-role">-</div></div></div>
+    <button class="btn btn-outline-light btn-sm w-100" id="logout-btn"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+  </div>
+</aside>
+<main class="main-content">
+  <div class="topbar"><h5 class="mb-0 fw-bold">Engineer Dashboard — Assigned Tickets</h5></div>
+  <div class="content-body">
+    <div class="card mb-3"><div class="card-body py-2">
+      <div class="row g-2">
+        <div class="col-md-5"><input type="text" id="keyword" class="form-control form-control-sm" placeholder="Search..."/></div>
+        <div class="col-md-4"><select id="status-filter" class="form-select form-select-sm"><option value="">All Status</option><option>ASSIGNED</option><option>IN_PROGRESS</option><option>WAITING_FOR_USER</option><option>RESOLVED</option></select></div>
+        <div class="col-md-3"><button class="btn btn-primary btn-sm w-100" onclick="loadTickets(0)"><i class="fas fa-search me-1"></i>Search</button></div>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Ticket #</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Raised By</th><th>Due</th><th>Actions</th></tr></thead>
+        <tbody id="tickets-body"><tr><td colspan="8" class="text-center py-3">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div class="card-footer d-flex justify-content-between"><small class="text-muted" id="page-info">-</small><div id="pagination" class="d-flex gap-1"></div></div>
+    </div>
+  </div>
+</main>
+</div>
+<div class="modal fade" id="actionModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="modal-title">Update Ticket</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <div id="status-field" class="mb-3 d-none"><label class="form-label">New Status</label>
+        <select id="new-status" class="form-select"><option value="IN_PROGRESS">In Progress</option><option value="WAITING_FOR_USER">Waiting for User</option><option value="RESOLVED">Resolved</option></select>
+      </div>
+      <div id="resolution-field" class="mb-3 d-none"><label class="form-label">Resolution *</label><textarea id="resolution" class="form-control" rows="3"></textarea></div>
+      <div class="mb-3"><label class="form-label">Notes / Comment</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
+      <div class="mb-3"><label class="form-label">Comment Type</label>
+        <select id="comment-type" class="form-select"><option value="PUBLIC">Public (visible to employee)</option><option value="INTERNAL">Internal Note</option></select>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-primary" id="confirm-btn">Confirm</button><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button></div>
+  </div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../js/api.js"></script><script src="../js/app.js"></script>
+<script>
+let selectedId=null, currentMode='status';
+const modal = new bootstrap.Modal(document.getElementById('actionModal'));
+async function loadTickets(page=0) {
+  const tbody=document.getElementById('tickets-body');
+  try {
+    const data = await api.searchAssignedTickets({keyword:document.getElementById('keyword').value,status:document.getElementById('status-filter').value,page,size:10});
+    if (!data.content.length) { tbody.innerHTML='<tr><td colspan="8" class="text-center py-4 text-muted"><i class="fas fa-check-circle fa-2x mb-2 text-success d-block"></i>No tickets assigned</td></tr>'; document.getElementById('page-info').textContent='0 results'; document.getElementById('pagination').innerHTML=''; return; }
+    tbody.innerHTML = data.content.map(t=>`<tr class="${t.slaBreached?'sla-breached':''}">
+      <td><a href="ticket-detail.html?id=${t.id}" class="fw-semibold text-decoration-none">${t.ticketNumber}</a>${t.slaBreached?'<span class="badge bg-danger ms-1" style="font-size:9px">SLA</span>':''}</td>
+      <td>${t.title}</td><td><span class="badge bg-secondary" style="font-size:10px">${(t.category||'').replace(/_/g,' ')}</span></td>
+      <td>${priorityBadge(t.priority)}</td><td>${statusBadge(t.status)}</td>
+      <td>${t.createdByName||'-'}</td><td>${formatDate(t.dueDate)}</td>
+      <td class="d-flex gap-1">
+        <button class="btn btn-warning btn-sm" onclick="openAction(${t.id},'status')" title="Update Status"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-success btn-sm" onclick="openAction(${t.id},'resolve')" title="Resolve"><i class="fas fa-check"></i></button>
+        <a href="ticket-detail.html?id=${t.id}" class="btn btn-outline-primary btn-sm"><i class="fas fa-eye"></i></a>
+      </td>
+    </tr>`).join('');
+    document.getElementById('page-info').textContent=`${data.numberOfElements} of ${data.totalElements}`;
+    const pages=document.getElementById('pagination'); pages.innerHTML='';
+    for(let i=0;i<data.totalPages;i++){const btn=document.createElement('button');btn.className=`btn btn-sm ${i===page?'btn-primary':'btn-outline-secondary'}`;btn.textContent=i+1;btn.onclick=()=>loadTickets(i);pages.appendChild(btn);}
+  } catch(e){ tbody.innerHTML=`<tr><td colspan="8" class="text-center py-3 text-danger">${e.message}</td></tr>`; }
+}
+function openAction(id, mode) {
+  selectedId=id; currentMode=mode;
+  document.getElementById('modal-title').textContent = mode==='resolve'?'Resolve Ticket':'Update Status';
+  document.getElementById('status-field').classList.toggle('d-none', mode==='resolve');
+  document.getElementById('resolution-field').classList.toggle('d-none', mode!=='resolve');
+  document.getElementById('notes').value=''; document.getElementById('resolution').value='';
+  modal.show();
+}
+document.getElementById('confirm-btn').addEventListener('click', async()=>{
+  try {
+    if (currentMode==='resolve') { await api.resolveTicket(selectedId, document.getElementById('resolution').value); showToast('Ticket resolved!'); }
+    else { await api.updateTicketStatus(selectedId, document.getElementById('new-status').value, document.getElementById('notes').value); showToast('Status updated!'); }
+    const notes = document.getElementById('notes').value;
+    if (notes) await api.addEngineerComment(selectedId, notes, document.getElementById('comment-type').value);
+    modal.hide(); loadTickets(0);
+  } catch(e){ showToast(e.message,'error'); }
+});
+document.addEventListener('DOMContentLoaded',()=>loadTickets(0));
+</script></body></html>

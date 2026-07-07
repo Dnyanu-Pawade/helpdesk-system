@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Raise Ticket</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="../css/style.css" rel="stylesheet"/></head>
+<body><div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-header"><span class="brand"><i class="fas fa-headset me-2"></i>Help Desk</span><span class="brand-sub">Employee Portal</span></div>
+  <nav class="sidebar-nav">
+    <a href="employee-dashboard.html" class="nav-item"><i class="fas fa-home"></i> Dashboard</a>
+    <a href="raise-ticket.html" class="nav-item active"><i class="fas fa-plus-circle"></i> Raise Ticket</a>
+    <a href="my-tickets.html" class="nav-item"><i class="fas fa-ticket-alt"></i> My Tickets</a>
+    <a href="notifications.html" class="nav-item"><i class="fas fa-bell"></i> Notifications <span id="notif-badge" class="badge bg-danger ms-auto d-none">0</span></a>
+    <a href="profile.html" class="nav-item"><i class="fas fa-user"></i> Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info"><div class="user-avatar"><i class="fas fa-user"></i></div><div><div class="user-name" id="sidebar-username">-</div><div class="user-role" id="sidebar-role">-</div></div></div>
+    <button class="btn btn-outline-light btn-sm w-100" id="logout-btn"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+  </div>
+</aside>
+<main class="main-content">
+  <div class="topbar"><h5 class="mb-0 fw-bold">Raise New Ticket</h5></div>
+  <div class="content-body"><div class="row justify-content-center"><div class="col-lg-8">
+    <div class="card"><div class="card-header"><h6>New IT Support Ticket</h6></div>
+    <div class="card-body p-4">
+      <div id="form-error" class="alert alert-danger d-none"></div>
+      <div id="form-success" class="alert alert-success d-none"></div>
+      <form id="ticket-form">
+        <div class="mb-3"><label class="form-label fw-semibold">Title *</label><input type="text" id="title" class="form-control" placeholder="Brief description of the issue" required/></div>
+        <div class="row">
+          <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Category *</label>
+            <select id="category" class="form-select" required>
+              <option value="">Select category...</option>
+              <option>HARDWARE</option><option>SOFTWARE</option><option>NETWORK</option><option>EMAIL</option>
+              <option>VPN</option><option>PRINTER</option><option>LAPTOP_DESKTOP</option><option>PASSWORD_RESET</option>
+              <option>APPLICATION_ISSUE</option><option>SERVER_ISSUE</option><option>OTHER</option>
+            </select>
+          </div>
+          <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Priority *</label>
+            <select id="priority" class="form-select" required>
+              <option value="">Select priority...</option>
+              <option value="LOW">🟢 Low</option><option value="MEDIUM">🟡 Medium</option>
+              <option value="HIGH">🔴 High</option><option value="CRITICAL">🚨 Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="mb-3"><label class="form-label fw-semibold">Description</label><textarea id="description" class="form-control" rows="4" placeholder="Detailed description of the issue..."></textarea></div>
+        <div class="mb-3"><label class="form-label fw-semibold">Attach Screenshot/File</label><input type="file" id="attachment" class="form-control" accept="image/*,.pdf,.log,.txt"/></div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary" id="submit-btn"><i class="fas fa-paper-plane me-1"></i>Submit Ticket</button>
+          <a href="employee-dashboard.html" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div></div>
+  </div></div></div>
+</main>
+</div>
+<script src="../js/api.js"></script><script src="../js/app.js"></script>
+<script>
+document.getElementById('ticket-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const btn=document.getElementById('submit-btn');
+  const errEl=document.getElementById('form-error'); const sucEl=document.getElementById('form-success');
+  errEl.classList.add('d-none'); sucEl.classList.add('d-none');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+  try {
+    const ticket = await api.createTicket({title:document.getElementById('title').value, category:document.getElementById('category').value, priority:document.getElementById('priority').value, description:document.getElementById('description').value});
+    const file = document.getElementById('attachment').files[0];
+    if (file && ticket.id) {
+      const fd = new FormData(); fd.append('file', file);
+      await fetch(`/api/tickets/${ticket.id}/attachments`,{method:'POST',headers:{'Authorization':'Bearer '+api.getToken()},body:fd});
+    }
+    sucEl.textContent=`Ticket ${ticket.ticketNumber} created! Redirecting...`; sucEl.classList.remove('d-none');
+    setTimeout(()=>window.location.href='my-tickets.html',2000);
+  } catch(err){ errEl.textContent=err.message; errEl.classList.remove('d-none'); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane me-1"></i>Submit Ticket'; }
+});
+</script></body></html>

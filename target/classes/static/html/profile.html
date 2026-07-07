@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>Profile</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="../css/style.css" rel="stylesheet"/></head>
+<body><div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-header"><span class="brand"><i class="fas fa-headset me-2"></i>Help Desk</span></div>
+  <nav class="sidebar-nav">
+    <a href="javascript:history.back()" class="nav-item"><i class="fas fa-arrow-left"></i> Back</a>
+    <a href="profile.html" class="nav-item active"><i class="fas fa-user"></i> Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-info"><div class="user-avatar"><i class="fas fa-user"></i></div><div><div class="user-name" id="sidebar-username">-</div><div class="user-role" id="sidebar-role">-</div></div></div>
+    <button class="btn btn-outline-light btn-sm w-100" id="logout-btn"><i class="fas fa-sign-out-alt me-1"></i>Logout</button>
+  </div>
+</aside>
+<main class="main-content">
+  <div class="topbar"><h5 class="mb-0 fw-bold">My Profile</h5></div>
+  <div class="content-body"><div class="row justify-content-center"><div class="col-lg-6">
+    <div class="card"><div class="card-body p-4">
+      <div id="success" class="alert alert-success d-none"></div>
+      <div id="error" class="alert alert-danger d-none"></div>
+      <div class="text-center mb-4">
+        <img id="profile-img" src="https://ui-avatars.com/api/?name=User&background=4f46e5&color=fff&size=100" class="rounded-circle mb-2" width="100" height="100" style="object-fit:cover"/>
+        <div><label class="btn btn-sm btn-outline-primary mt-1"><i class="fas fa-camera me-1"></i>Change Photo<input type="file" id="photo-input" accept="image/*" class="d-none"/></label></div>
+      </div>
+      <form id="profile-form">
+        <div class="mb-3"><label class="form-label fw-semibold">Full Name</label><input type="text" id="fullName" class="form-control"/></div>
+        <div class="mb-3"><label class="form-label fw-semibold">Email</label><input type="email" id="email" class="form-control" disabled/></div>
+        <div class="mb-3"><label class="form-label fw-semibold">Phone</label><input type="text" id="phone" class="form-control"/></div>
+        <div class="row">
+          <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Designation</label><input type="text" id="designation" class="form-control"/></div>
+          <div class="col-md-6 mb-3"><label class="form-label fw-semibold">Department</label><input type="text" id="department" class="form-control" disabled/></div>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Save Changes</button>
+      </form>
+      <hr/>
+      <h6 class="fw-bold mt-3">Change Password</h6>
+      <form id="password-form">
+        <div class="mb-3"><label class="form-label fw-semibold">Current Password</label><input type="password" id="currentPassword" class="form-control" required/></div>
+        <div class="mb-3"><label class="form-label fw-semibold">New Password</label><input type="password" id="newPassword" class="form-control" minlength="6" required/></div>
+        <div class="mb-3"><label class="form-label fw-semibold">Confirm Password</label><input type="password" id="confirmPassword" class="form-control" required/></div>
+        <button type="submit" class="btn btn-warning"><i class="fas fa-key me-1"></i>Change Password</button>
+      </form>
+    </div></div>
+  </div></div></div>
+</main>
+</div>
+<script src="../js/api.js"></script><script src="../js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async()=>{
+  const p = await api.getProfile();
+  document.getElementById('fullName').value=p.fullName||'';
+  document.getElementById('email').value=p.email||'';
+  document.getElementById('phone').value=p.phone||'';
+  document.getElementById('designation').value=p.designation||'';
+  document.getElementById('department').value=p.department?.name||'';
+  if(p.profilePhoto) document.getElementById('profile-img').src=p.profilePhoto;
+  else if(p.fullName) document.getElementById('profile-img').src=`https://ui-avatars.com/api/?name=${encodeURIComponent(p.fullName)}&background=4f46e5&color=fff&size=100`;
+});
+document.getElementById('photo-input').addEventListener('change', async(e)=>{
+  const file=e.target.files[0]; if(!file) return;
+  const fd=new FormData(); fd.append('file',file);
+  try {
+    const res=await fetch('/api/users/me/photo',{method:'POST',headers:{'Authorization':`Bearer ${api.getToken()}`},body:fd});
+    const data=await res.json();
+    if(data.success){ document.getElementById('profile-img').src=data.message+'?t='+Date.now(); showToast('Photo updated!'); }
+  } catch(e){ showToast('Upload failed','error'); }
+});
+document.getElementById('profile-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  try { await api.updateProfile({fullName:document.getElementById('fullName').value,phone:document.getElementById('phone').value,designation:document.getElementById('designation').value}); showToast('Profile updated!'); } catch(err){ showToast(err.message,'error'); }
+});
+document.getElementById('password-form').addEventListener('submit', async(e)=>{
+  e.preventDefault();
+  const np=document.getElementById('newPassword').value; const cp=document.getElementById('confirmPassword').value;
+  if(np!==cp){ showToast('Passwords do not match','error'); return; }
+  try { await api.changePassword(document.getElementById('currentPassword').value,np); showToast('Password changed!'); document.getElementById('password-form').reset(); } catch(err){ showToast(err.message,'error'); }
+});
+</script></body></html>
